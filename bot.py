@@ -29,9 +29,36 @@ def balance(message):
 @bot.message_handler(func=lambda m: m.text == "Купить")
 def buy(message):
     markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("15 картинок — 1 USDT", callback_data="buy_15"))
-    markup.add(telebot.types.InlineKeyboardButton("50 картинок — 3 USDT", callback_data="buy_50"))
+    markup.add(telebot.types.InlineKeyboardButton("⭐ 15 картинок — 50 Stars", callback_data="stars_15"))
+    markup.add(telebot.types.InlineKeyboardButton("⭐ 50 картинок — 150 Stars", callback_data="stars_50"))
     bot.send_message(message.chat.id, "Выбери пакет:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("stars_"))
+def send_invoice(call):
+    packages = {"stars_15": (50, 15), "stars_150": (150, 50)}
+    stars, images = packages[call.data]
+    bot.send_invoice(
+        call.message.chat.id,
+        title=f"{images} картинок",
+        description=f"Генерация {images} картинок в Нейро Фото",
+        invoice_payload=f"{call.from_user.id}:{images}",
+        provider_token="",
+        currency="XTR",
+        prices=[telebot.types.LabeledPrice(f"{images} картинок", stars)]
+    )
+
+@bot.pre_checkout_query_handler(func=lambda q: True)
+def checkout(query):
+    bot.answer_pre_checkout_query(query.id, ok=True)
+
+@bot.message_handler(content_types=["successful_payment"])
+def payment_done(message):
+    payload = message.successful_payment.invoice_payload
+    user_id, images = payload.split(":")
+    user = get_user(int(user_id))
+    user["images"] += int(images)
+    bot.send_message(message.chat.id, f"✅ Оплачено! Добавлено {images} картинок. Баланс: {user['images']}")
+
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
 def create_invoice(call):
