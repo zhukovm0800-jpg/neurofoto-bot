@@ -61,6 +61,12 @@ def generate_image(message):
 @bot.message_handler(func=lambda m: True)
 def handle(message):
     generate_image(message)
+@bot.message_handler(commands=["add"])
+def add_images(message):
+    if message.from_user.id == message.chat.id:
+        user = get_user(message.from_user.id)
+        user["images"] += 15
+        bot.send_message(message.chat.id, f"Добавлено 15 картинок! Баланс: {user['images']}")
 
 print("Бот запущен!")
 bot.polling(none_stop=True)
